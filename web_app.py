@@ -9,6 +9,7 @@ Files that go together:
     report_pdf.py   the downloadable PDF report
 """
 
+import base64
 import html
 import os
 
@@ -38,12 +39,12 @@ CSS = """
 .block-container {padding-top: 2rem; max-width: 1200px;}
 
 .hero {background:#12283a; color:#f4f7fa; padding:1.6rem 1.9rem; border-radius:6px;
-       border-bottom:4px solid #e0a100; margin-bottom:1.4rem;}
+       border:1px solid rgba(255,255,255,.10); border-bottom:4px solid #e0a100; margin-bottom:1.4rem;}
 .hero-title {font-family:Georgia,'Times New Roman',serif; font-size:2.05rem;
              font-weight:700; line-height:1.2;}
 .hero-sub {margin-top:.55rem; color:#c9d6e2; font-size:1.02rem; line-height:1.5; max-width:44rem;}
 
-.summary {border-left:6px solid #5b6b7a; background:rgba(128,140,150,.10);
+.summary {border-left:6px solid #5b6b7a; background:rgba(18,40,58,.78);
           padding:1.2rem 1.5rem; border-radius:0 6px 6px 0; margin-bottom:.9rem;}
 .summary-rating {font-weight:700; font-size:.95rem; margin-bottom:.2rem;}
 .summary-headline {font-family:Georgia,'Times New Roman',serif; font-size:1.5rem;
@@ -53,15 +54,15 @@ CSS = """
 .watch {border-top:1px solid rgba(128,140,150,.4); padding-top:.65rem; margin-top:.5rem;}
 .watch-title {font-weight:700; margin-bottom:.2rem;}
 
-.ledger {display:flex; flex-wrap:wrap; border-top:2px solid #1f7a8c;
+.ledger {display:flex; flex-wrap:wrap; border-top:2px solid #2bb0c4; background:rgba(12,26,38,.70);
          border-bottom:1px solid rgba(128,140,150,.4); margin:.6rem 0 1.2rem;}
 .ledger > div {flex:1 1 200px; padding:.85rem 1rem; border-left:1px solid rgba(128,140,150,.4);}
-.ledger > div:first-child {border-left:none; padding-left:0;}
+.ledger > div:first-child {border-left:none; padding-left:1rem;}
 .l-label {font-size:.88rem; opacity:.7;}
 .l-value {font-size:1.65rem; font-weight:700; line-height:1.3;}
 .l-sub {font-size:.85rem; opacity:.7;}
 @media (max-width: 640px) {
-  .ledger > div {flex:1 1 100%; border-left:none; padding-left:0;
+  .ledger > div {flex:1 1 100%; border-left:none; padding-left:1rem;
                  border-top:1px solid rgba(128,140,150,.4);}
   .ledger > div:first-child {border-top:none;}
 }
@@ -73,7 +74,7 @@ CSS = """
 .seg-label b {display:block;}
 
 .board {border:1px solid rgba(128,140,150,.4); border-left:6px solid #5b6b7a;
-        border-radius:4px; padding:1.05rem 1.2rem; background:rgba(128,140,150,.06);
+        border-radius:4px; padding:1.05rem 1.2rem; background:rgba(18,40,58,.78);
         margin-bottom:.8rem;}
 .board-head {display:flex; justify-content:space-between; align-items:center; margin-bottom:.65rem;}
 .board-port {font-family:Georgia,'Times New Roman',serif; font-size:1.35rem; font-weight:700;}
@@ -100,7 +101,7 @@ CSS = """
 
 .row {display:flex; justify-content:space-between; gap:1rem; padding:.5rem .1rem;
       border-bottom:1px solid rgba(128,140,150,.3);}
-.row-total {font-weight:700; border-bottom:2px solid #1f7a8c;}
+.row-total {font-weight:700; border-bottom:2px solid #2bb0c4;}
 .row-sub {font-size:.85rem; opacity:.75;}
 .row > span:last-child {text-align:right; font-variant-numeric:tabular-nums;}
 
@@ -121,6 +122,38 @@ button[kind="primary"]:hover, button[data-testid="stBaseButton-primary"]:hover {
 """
 
 st.markdown(CSS, unsafe_allow_html=True)
+
+
+def set_background(image_name, overlay=0.35):
+    """Dark page background from an image next to this file.
+    Does nothing if the image is missing, so the app still runs."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), image_name)
+    if not os.path.exists(path):
+        return
+    with open(path, "rb") as f:
+        encoded = base64.b64encode(f.read()).decode()
+    ext = path.rsplit(".", 1)[-1].lower()
+    mime = "jpeg" if ext in ("jpg", "jpeg") else ext
+    st.markdown(
+        "<style>.stApp {"
+        f"background-image: linear-gradient(rgba(12,26,38,{overlay}), rgba(12,26,38,{overlay})), "
+        f'url("data:image/{mime};base64,{encoded}");'
+        "background-size: cover; background-position: center; background-attachment: fixed;"
+        "}</style>",
+        unsafe_allow_html=True,
+    )
+
+
+set_background("background_dark.jpg")
+
+# Lighter shades for coloured text on the dark panels
+LEVEL_TEXT = {
+    "Low": "#5fd08f",
+    "Moderate": "#f0b429",
+    "High": "#f08a4b",
+    "Severe": "#ff6b61",
+    "Unavailable": "#9fb0bf",
+}
 
 USD = "&#36;"  # dollar sign that is never read as maths markup
 
@@ -294,7 +327,7 @@ def summary_panel(r):
     watch = "".join(f"<li>{esc(w)}</li>" for w in s["watch"])
     return (
         f'<div class="summary" style="border-left-color:{color}">'
-        f'<div class="summary-rating" style="color:{color}">Overall outlook: {esc(s["rating"])}</div>'
+        f'<div class="summary-rating" style="color:{LEVEL_TEXT[s["level"]]}">Overall outlook: {esc(s["rating"])}</div>'
         f'<div class="summary-headline">{esc(s["headline"])}</div>'
         f"<ul>{bullets}</ul>"
         f'<div class="watch"><div class="watch-title">What to watch</div><ul>{watch}</ul></div>'
